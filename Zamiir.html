@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="so">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CA242 Project - Expense Tracker</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --warning: #ca8a04;
+            --bg: #f8fafc;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            padding: 40px 20px;
+            margin: 0;
+        }
+
+        .container {
+            background: #ffffff;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        h2 { color: var(--primary); margin-bottom: 5px; }
+        p { color: #64748b; font-size: 0.9rem; }
+
+        .summary-card {
+            background: var(--primary);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .summary-card h1 { margin: 5px 0; font-size: 2.5rem; }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 1.5rem;
+        }
+
+        input {
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .btn {
+            padding: 12px;
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn-add { background-color: var(--success); }
+        .btn-update { background-color: var(--warning); }
+        
+        #feedback {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            display: none;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .price-tag { color: var(--danger); font-weight: bold; }
+
+        .btn-action {
+            padding: 5px 10px;
+            font-size: 0.75rem;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2>Expense Manager</h2>
+        <p>Expense Manager by Zamiir</p>
+    </div>
+    
+   
+    <div class="summary-card">
+        <small>Total Expenses</small>
+        <h1 id="totalAmount">$0.00</h1>
+    </div>
+
+    
+    <div id="feedback"></div>
+
+    
+    <div class="form-group">
+        <input type="text" id="itemName" placeholder="Item name (e.g. Books)">
+        <input type="number" id="itemPrice" placeholder="Price ($)">
+        <button id="mainBtn" class="btn btn-add">Add to List</button>
+    </div>
+
+   
+    <table>
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>Price</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="expenseList">
+            
+        </tbody>
+    </table>
+</div>
+
+<script>
+  
+    let expenses = [];
+    let editModeId = null;
+
+    
+    const nameInput = document.getElementById('itemName');
+    const priceInput = document.getElementById('itemPrice');
+    const mainBtn = document.getElementById('mainBtn');
+    const feedback = document.getElementById('feedback');
+    const expenseList = document.getElementById('expenseList');
+    const totalDisplay = document.getElementById('totalAmount');
+
+    
+    mainBtn.addEventListener('click', handleAction);
+
+    function handleAction() {
+        const name = nameInput.value.trim();
+        const price = parseFloat(priceInput.value);
+
+      
+        if (name === "" || isNaN(price)) {
+            showFeedback("please fill in all empty fields!", "var(--danger)", "#f8d7da");
+            return;
+        }
+
+        if (price < 0) {
+            showFeedback("Price must be a positive number!", "var(--danger)", "#f8d7da");
+            return;
+        }
+
+        if (editModeId) {
+           
+            const index = expenses.findIndex(e => e.id === editModeId);
+            expenses[index].name = name;
+            expenses[index].price = price;
+            
+            editModeId = null;
+            mainBtn.textContent = "Add to List";
+            mainBtn.className = "btn btn-add";
+            showFeedback("The data has been updated!", "var(--success)", "#d4edda");
+        } else {
+    
+            const newEntry = {
+                id: Date.now(),
+                name: name,
+                price: price
+            };
+            expenses.push(newEntry);
+            showFeedback("Added to the list!", "var(--success)", "#d4edda");
+        }
+
+        clearInputs();
+        render();
+    }
+
+    
+    function showFeedback(msg, color, bg) {
+        feedback.textContent = msg;
+        feedback.style.display = "block";
+        feedback.style.color = color;
+        feedback.style.backgroundColor = bg;
+        setTimeout(() => feedback.style.display = "none", 3000);
+    }
+
+    function clearInputs() {
+        nameInput.value = "";
+        priceInput.value = "";
+    }
+
+    
+    function render() {
+        expenseList.innerHTML = "";
+        let total = 0;
+
+        expenses.forEach(item => {
+            total += item.price;
+            
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${item.name}</td>
+                <td class="price-tag">$${item.price.toFixed(2)}</td>
+                <td>
+                    <button class="btn btn-edit btn-action" style="background:var(--primary)" onclick="editItem(${item.id})">Edit</button>
+                    <button class="btn btn-delete btn-action" style="background:var(--danger)" onclick="deleteItem(${item.id})">Del</button>
+                </td>
+            `;
+            expenseList.appendChild(row);
+        });
+
+        totalDisplay.textContent = `$${total.toFixed(2)}`;
+    }
+
+   
+    window.deleteItem = function(id) {
+        expenses = expenses.filter(e => e.id !== id);
+        render();
+    }
+
+    window.editItem = function(id) {
+        const item = expenses.find(e => e.id === id);
+        nameInput.value = item.name;
+        priceInput.value = item.price;
+        editModeId = id;
+        mainBtn.textContent = "Cusboonaysii (Update)";
+        mainBtn.className = "btn btn-update";
+    }
+</script>
+
+</body>
+</html>
